@@ -51,7 +51,7 @@ redButtonPos := new Vector2(0.364085, 0.551298)
 lobbyLookPos := new Vector2(0.001751, 0.054978)
 
 toggle := False
-delay := 200
+delay := 75
 verifySteps := 4
 
 global winPID := ""
@@ -154,11 +154,11 @@ NumpadMult::
 	verifyMode := !verifyMode
 return
 
-F12::
+NumpadSub::
 	toggle := False
 return
 
-^F12::
+NumpadAdd::
 	if(toggle == True)
 		return
 	toggle := True
@@ -168,12 +168,11 @@ return
 	CoordMode, Pixel, Screen
 	SetControlDelay -1
 
-	verifyCount := verifySteps
-	winRect := GetWinRect()
+	verifyCount := 0
 	namedFramePositions := []
 	Loop 
 	{
-		if(verifyMode && --verifyCount <= 0)
+		if(--verifyCount <= 0)
 		{
 			verifyCount := verifySteps
 			winRect := GetWinRect()
@@ -184,14 +183,14 @@ return
 				namedFramePositions[index] := winRect.y.Multiply(el).ControlPrint()
 		}
 
-		if(toggle == False)
-			return
-
 		for index, el in namedFramePositions
 		{
 			ControlClick2(el)
 			Sleep, %delay%
 		}
+
+		if(toggle == False)
+			return
 	}
 
 return
@@ -201,23 +200,19 @@ Verify(rect)
 	global click1, click2, lobbyLookPos, redButtonPos
 
 	psPos := rect.y.Multiply(lobbyLookPos)
-	psResult := OffsetPixelSearch(rect.x, psPos.x, psPos.y, 1, 0x5F2F26, 23)
+	psResult := OffsetPixelSearch(rect.x, psPos.x, psPos.y, 3, 0x5F2F26, 30)
 	if (psResult <> 0)
 		return
 
-	Sleep, 500
+	Sleep, 750
 
 	ControlClickPercent(rect.y, click1)
-	Sleep, 500
+	Sleep, 1000
 
-	c2 := rect.y.Multiply(click2)
-	ControlClickVector(c2)
-	Sleep, 500
+	ControlClickPercent(rect.y, click2)
+	Sleep, 1250
 
 	; If has no energy - click the red button
 	ControlClickPercent(rect.y, redButtonPos)
 	Sleep, 500
-
-	ControlClickVector(c2)
-	Sleep, 1000
 }
