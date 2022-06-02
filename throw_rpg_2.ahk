@@ -12,11 +12,14 @@ class Vector2
 		This.x := x
 		This.y := y
 	}
+	__Get(){
+		return this.x . " " . this.y
+	}
 	Print(){
-		return % this.x . " " . this.y
+		return this.x . " " . this.y
 	}
 	Print2(){
-		return % "(" . this.x . ", " . this.y . ")"
+		return "(" . this.x . ", " . this.y . ")"
 	}
 	ControlPrint(){
 		return "x" . this.x . " y" . this.y
@@ -36,27 +39,26 @@ class Vector2
 }
 
 ;#region Variable
-basePosY := 675
-mousePosArr := [ 	new Vector2(1030, basePosY)
-, new Vector2(860, basePosY)
-, new Vector2(685, basePosY)
-, new Vector2(520, basePosY)
-, new Vector2(330, basePosY)]
 
-len := mousePosArr.MaxIndex()
-mousePosNamed := []
-Loop, %len%
-	mousePosNamed[A_Index] := mousePosArr[A_Index].ControlPrint()
+framePosY := 0.821208
+framePositions := [ new Vector2(0.231579, framePosY)
+	, new Vector2(0.357895, framePosY)
+	, new Vector2(0.477895, framePosY)
+	, new Vector2(0.605614, framePosY)
+	, new Vector2(0.724211, framePosY)]
+
+redButtonPos := new Vector2(0.364085, 0.551298)
+lobbyLookPos := new Vector2(0.001751, 0.054978)
 
 toggle := False
 delay := 200
-verifySteps := 3
+verifySteps := 4
 
 global winPID := ""
 
 verifyMode := True
-click1 := ""
-click2 := ""
+click1 := new Vector2(0, 0)
+click2 := new Vector2(0, 0)
 
 ;#region Util Functions
 
@@ -108,9 +110,9 @@ ControlClickVector(vector)
 	ControlClick, % vector.ControlPrint(), ahk_pid %winPID%,,,, Pos NA
 }
 
-ControlClickPercert(winSize, percentVector)
+ControlClickPercent(winSize, percentVector)
 {
-	vec := percentVector.Multiply(winSize)
+	vec := winSize.Multiply(percentVector)
 	ControlClick, % vec.ControlPrint(), ahk_pid %winPID%,,,, Pos NA
 }
 
@@ -136,7 +138,21 @@ SetPID(){
 
 ;#region INPUTS
 
-~^Esc::ExitApp ; Safe Measure
+~+Esc::ExitApp ; Safe Measure
+
+Numpad1::
+	SetPID()
+	click1 := MouseGetPosPercentVector(GetWinSize())
+return
+
+Numpad2::
+	SetPID()
+	click2 := MouseGetPosPercentVector(GetWinSize())
+return
+
+NumpadMult::
+	verifyMode := !verifyMode
+return
 
 F12::
 	toggle := False
@@ -148,77 +164,60 @@ return
 	toggle := True
 
 	SetPID()
-
 	CoordMode, Mouse, Relative
 	CoordMode, Pixel, Screen
 	SetControlDelay -1
 
-	verifyCount := 0
-	Loop{
-		for index, el in mousePosNamed
+	verifyCount := verifySteps
+	winRect := GetWinRect()
+	namedFramePositions := []
+	Loop 
+	{
+		if(verifyMode && --verifyCount <= 0)
+		{
+			verifyCount := verifySteps
+			winRect := GetWinRect()
+			if(verifyMode)
+				Verify(winRect)
+			
+			for index, el in framePositions
+				namedFramePositions[index] := winRect.y.Multiply(el).ControlPrint()
+		}
+
+		if(toggle == False)
+			return
+
+		for index, el in namedFramePositions
 		{
 			ControlClick2(el)
 			Sleep, %delay%
 		}
-		if(toggle == False)
-			return
-		if(verifyMode && ++verifyCount >= verifySteps){
-			Sleep, 1500
-			Verify()
-			verifyCount := 0
-		}
 	}
+
 return
 
-NumpadMult::
-	verifyMode := !verifyMode
-return
-Numpad1::
-	click1 := MouseGetPosPercentVector(GetWinSize())
-return
-Numpad2::
-	click2 := MouseGetPosPercentVector(GetWinSize())
-return
+Verify(rect)
+{	
+	global click1, click2, lobbyLookPos, redButtonPos
 
-Verify(){	
-	rect := GetWinRect()
-
-	v := OffsetPixelSearch(rect.x, 3, 37, 1, 0x5F2F26, 10)
-	; MsgBox % v
-	if (v <> 0)
+	psPos := rect.y.Multiply(lobbyLookPos)
+	psResult := OffsetPixelSearch(rect.x, psPos.x, psPos.y, 1, 0x5F2F26, 23)
+	if (psResult <> 0)
 		return
 
-	global click1, click2
-	ControlClickVector(rect.y.Multiply(click1))
-	Sleep, 1000
-
-	c2 := rect.y.Multiply(click2)
-	ControlClickVector(vec)
 	Sleep, 500
 
-	; If has no energy
-	ControlClickVector(rect.y.Multiply(new Vector2(0.364085, 0.551298)))
+	ControlClickPercent(rect.y, click1)
+	Sleep, 500
+
+	c2 := rect.y.Multiply(click2)
+	ControlClickVector(c2)
+	Sleep, 500
+
+	; If has no energy - click the red button
+	ControlClickPercent(rect.y, redButtonPos)
 	Sleep, 500
 
 	ControlClickVector(c2)
 	Sleep, 1000
-
-	; redPixel = new Vector2(581, 435)
-	; v := OffsetCenterPixelSearch(winPos, redPixel.x, redPixel.y, 1, 0xD77569, 10)
-	; if (v == 0){
-	;     ControlClickVector("x581 y435")
-	;     Sleep, 1000
-	;     ControlClickVector(click2)
-	;     Sleep, 1000
-	; }
 }
-
-Numpad0::
-	SetPID()
-	CoordMode, Mouse, Relative
-	winSize := GetWinSize()
-	; MsgBox % winSize.Print()
-	; tmpV := MouseGetPosPercentVector(winSize)
-	p := winSize.Multiply(click1)
-	MouseMove, % p.x, % p.y 
-return

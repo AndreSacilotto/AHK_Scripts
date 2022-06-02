@@ -10,7 +10,7 @@ SetWorkingDir %A_ScriptDir% ; Ensures a consistent starting directory.
 paused := False
 
 labelWidth := 125
-textWidth := 100
+textWidth := 105
 
 idPosXYScr := "idPosXYScr"
 idPosXYRel := "idPosXYRel"
@@ -31,7 +31,9 @@ CreateGuiItem(idWinXY, "8. Window XY", "WXY", labelWidth, textWidth)
 CreateGuiItem(idWinHW, "9. Window HW","WHW", labelWidth, textWidth)
 Gui, Add, Text, xm w%labelWidth% vidPause, % "Paused: " . Bool(paused)
 
-Gui, Show , NA Center AutoSize, % "Gui Mouse"
+Gui, Show, NA Center AutoSize, % "Gui Mouse"
+
+;#region Functions
 
 Bool(bollean){
 	return bollean ? "True" : "False"
@@ -73,7 +75,7 @@ return
 	GuiControl, Text, idPause, % "Paused: " . Bool(paused)
 return
 
-~^Esc::
+~+Esc::
 GuiClose:
 ExitApp
 
