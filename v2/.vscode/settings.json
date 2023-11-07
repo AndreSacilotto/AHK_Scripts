@@ -1,0 +1,15 @@
+{
+	"emeraldwalk.runonsave": {
+		"autoClearConsole": true,
+		"commands": [
+			{
+				"match": "\\.ahk$",
+				"cmd": "\"C:\\Program Files\\AutoHotkey\\v2\\AutoHotkey.exe\" \"${file}\""
+			},
+			// {
+			// 	"match": ".*",
+			// 	"cmd": "echo ${file}"
+			// }
+		]
+	}
+}
