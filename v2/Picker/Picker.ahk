@@ -6,7 +6,7 @@
 ; #region Global Vars
 
 global myGui
-global updateTime := 130
+global updateRate := 130
 
 global historic := []
 
@@ -20,9 +20,10 @@ global activeWindow := WinExist("A")
 
 ; ^Esc::CloseApp()
 
-~+X::{
+~!S::{
 	global historic
-	A_Clipboard := ArrayToString(historic, "`n")
+	A_Clipboard := mousePos ; mouse coords
+	historic.Push(mousePos)
 }
 
 ~!X::{
@@ -31,33 +32,26 @@ global activeWindow := WinExist("A")
 	historic.Push(mouseColor)
 }
 
-~^X::{
-	global historic
-	A_Clipboard := mousePos ; mouse coords
-	historic.Push(mousePos)
-}
+~!C::CopyHistoric()
 
-~^+X::{
-	global historic
-	historic := []
-}
+~!Z::ClearHistoric()
 
-~^Numpad7::{ ; lock
-	global myGui
-	myGui["GUI_BoxLock"].Click()
-}
-~^Numpad4::{ ; freeze
-	global myGui
-	myGui["GUI_BoxFreeze"].Click()
-} 
-~^Numpad9::{ ; follow mouse
-	global myGui
-	box := myGui["GUI_FollowMouse"].Click()
-}
-~^Numpad6::{ ; always on top
+~^Numpad7::{ ; always on top
 	global myGui
 	box := myGui["GUI_BoxTop"].Click()
 }
+~^Numpad4::{ ; follow mouse
+	global myGui
+	box := myGui["GUI_BoxFollowMouse"].Click()
+}
+~^Numpad1::{ ; freeze
+	global myGui
+	myGui["GUI_BoxFocus"].Click()
+} 
+~^Numpad8::{ ; freeze
+	global myGui
+	myGui["GUI_BoxFreeze"].Click()
+} 
 
 ; #endregion
 ; #region MAIN
@@ -69,12 +63,21 @@ CreateGui()
 ; #endregion
 ; #region UI
 
+CopyHistoric(){
+	global historic
+	A_Clipboard := ArrayToString(historic, "`n")
+}
+ClearHistoric(){
+	global historic
+	historic := []
+}
+
 CloseApp(*){
 	ExitApp()
 }
 
 CreateGui() {
-	global myGui, updateTime
+	global myGui, updateRate
 
 	try TraySetIcon "picker.ico"
 	DllCall("shell32\SetCurrentProcessExplicitAppUserModelID", "wstr", "Spectra.Picker") ; set company
@@ -88,29 +91,31 @@ CreateGui() {
 	myGui.SetFont('s9', "Segoe UI")
 	
 	myGui.AddText("Section Center r1", "--------------------------- Options ---------------------------")
-	boxLock := myGui.AddCheckbox("vGUI_BoxLock w100 r1 xm ym+25", "Locked") ; Lock the active window
-	boxLock.Click := (*) => (boxLock.Value := !boxLock.Value)
 
-	boxFreeze := myGui.AddCheckbox("vGUI_BoxFreeze w100 r1 xm ym+50", "Freezed") ; Freeze updates
-	boxFreeze.OnEvent("Click", (GuiControl, Info) => SetTimerMainLoop(!GuiControl.Value))
-	boxFreeze.Click := (*) => (boxFreeze.Value := !boxFreeze.Value, SetTimerMainLoop(!boxFreeze.Value))
-
-	boxFM := myGui.AddCheckbox("vGUI_FollowMouse w100 r1 xm+220 ym+25 Right", "Follow Mouse") ; false: get window by focus | true: get window by mouse over
-	boxFM.Click := (*) => (boxFM.Value := !boxFM.Value)
-
-	boxTop := myGui.AddCheckbox("vGUI_BoxTop w100 xm+220 ym+50 Right", "AlwaysOnTop")
+	boxTop := myGui.AddCheckbox("vGUI_BoxTop w100", "AlwaysOnTop")
 	boxTop.Value := 1
 	boxTop.OnEvent("Click", (GuiControl, Info) => WinSetAlwaysOnTop(GuiControl.Value, myGui))
 	boxTop.Click := (*) => (boxTop.Value := !boxTop.Value, WinSetAlwaysOnTop(boxTop.Value, myGui))
 	
-	; conflict with Freeze 
-	; editRefresh := myGui.AddEdit("vGUI_Refresh w80 r1 xm+120 ym+24 Center", "Refresh Rate")
-	; editRefresh.Value := updateTime
-	; editRefresh.OnEvent("Change", (GuiControl, Info) => updateTime := Integer(GuiControl.Value) )
-	; myGui.AddText("yp+25 w80 r1 Center", "Refresh Rate")
+	boxFM := myGui.AddCheckbox("vGUI_BoxFollowMouse w100", "Follow Mouse") ; false: get window by focus | true: get window by mouse over
+	boxFM.Value := 1
+	boxFM.Click := (*) => (boxFM.Value := !boxFM.Value)
+	
+	boxFocus := myGui.AddCheckbox("vGUI_BoxFocus w100", "Send Focus") ; keep hovered window always focused (only works with follow mouse)
+	boxFocus.Value := 1
+	boxFocus.Click := (*) => (boxFocus.Value := !boxFocus.Value)
+
+	boxFreeze := myGui.AddCheckbox("vGUI_BoxFreeze w100", "Freezed") ; Freeze updates
+	boxFreeze.OnEvent("Click", (GuiControl, Info) => SetTimerMainLoop(!GuiControl.Value))
+	boxFreeze.Click := (*) => (boxFreeze.Value := !boxFreeze.Value, SetTimerMainLoop(!boxFreeze.Value))
+
+	; refresh rate
+	editRefresh := myGui.AddSlider("vGUI_Refresh range45-300 w80 r1 xm+220 ym+33 Thick15", updateRate)
+	editRefresh.OnEvent("Change", (GuiControl, Info) => TryUpdateRefreshRate(GuiControl.Value) )
+	myGui.AddText("yp+25 w80 r1 Center", "Refresh Rate")
 
 	myGui.AddText("Section Center xs r1", "----------------------- Window Process -----------------------")
-	myGui.AddEdit("vGUI_Title xm w320 r5 ReadOnly -Wrap", "")
+	myGui.AddEdit("vGUI_Title xm w320 r6 ReadOnly -Wrap", "")
 
 	myGui.AddText("Section Center xs r1", "----------------------- Mouse Position -----------------------")
 	myGui.AddEdit("vGUI_MousePos w320 r5 ReadOnly", "")
@@ -118,7 +123,10 @@ CreateGui() {
 	myGui.AddText("Section Center xs r1", "---------------------- Window Postition ----------------------")
 	myGui.AddEdit("vGUI_WinPos w320 r2 ReadOnly", "")
 
-	myGui.AddButton("vGUI_His r1", "History").OnEvent("Click", (GuiControl, Info) => MsgBox(ArrayToString(historic), GuiControl.Text, 4096) )
+	myGui.AddButton("vGUI_His w107 r1 xp+0 yp+45", "History").OnEvent("Click", (GuiControl, Info) => MsgBox(ArrayToString(historic, "`n"), GuiControl.Text, 4096) )
+
+	myGui.AddButton("w107 r1 xp+107 yp", "Copy").OnEvent("Click", (GuiControl, Info) => CopyHistoric() )
+	myGui.AddButton("w107 r1 xp+107 yp", "Clear").OnEvent("Click", (GuiControl, Info) => ClearHistoric() )
 
 	myGui.Show("NoActivate")
 	; WinGetClientPos(&x_temp, &y_temp2, , , myGui.hwnd)
@@ -128,15 +136,21 @@ CreateGui() {
 	SetTimerMainLoop(true)
 }
 
+TryUpdateRefreshRate(value){
+	updateTime := Integer(value)
+	if(updateTime>0)
+		SetTimer(SafeMainLoop, updateTime)
+}
+
 SafeMainLoop() {
 	try MainLoop()
 }
 
 SetTimerMainLoop(enabled){
-	global myGui, updateTime
+	global myGui, updateRate
 	if(enabled)
 	{
-		SetTimer(SafeMainLoop, updateTime)
+		SetTimer(SafeMainLoop, updateRate)
 		myGui["GUI_BoxFreeze"].Value = 0
 	}
 	else{
@@ -154,7 +168,7 @@ GUIResize(GuiObj, MinMax, Width, Height)
 
 	ctrlW := Width - (GuiObj.MarginX * 2) ; ctrlW := Width - horzMargin
 
-	for index, element in ["Title", "MousePos", "WinPos", "His"]
+	for index, element in ["Title", "MousePos", "WinPos"]
 		GuiObj["GUI_" element].Move(,,ctrlW)
 }
 
@@ -166,31 +180,32 @@ MainLoop()
 		return
 
     CoordMode("Mouse", "Screen")
-	MouseGetPos(&msX, &msY, &hWindow, , 2)
+	MouseGetPos(&msX, &msY, &hWindow, &hControl, 2)
 
-	if(!myGui["GUI_BoxLock"].Value)
+	if (myGui["GUI_BoxFollowMouse"].Value and WinExist("ahk_id " hWindow))
 	{
-		MouseGetPos()
-		if (myGui["GUI_FollowMouse"].Value){
-			WinExist("ahk_id " hWindow) ; triggers window update
-			activeWindow := hWindow
-		}
-		else
-			activeWindow := WinExist("A")
+		if(myGui["GUI_BoxFocus"].Value)
+			WinActivate("ahk_id " hWindow) ; the coords are relative to last focused window
+		activeWindow := hWindow
 	}
-	else
-		WinExist("ahk_id " activeWindow) ; triggers window update
-
+	else{
+		activeWindow := WinExist("A")
+		hControl := ControlGetFocus()
+	}
+	
     winGet1 := WinGetTitle()
     winGet2 := WinGetClass()
     winGet3 := WinGetProcessName()
     winGet4 := WinGetPID()
+    hControlClassNN := ""
+    try hControlClassNN := ControlGetClassNN(hControl)
     
     winDataText := "Title:`t" winGet1 "`n"
                  . "Class:`t" winGet2 "`n"
                  . "EXE:`t" winGet3 "`n"
                  . "PID:`t" winGet4 "`n"
-                 . "ID:`t" activeWindow
+                 . "ID:`t" activeWindow "`n"
+                 . "ClassNN:`t" hControlClassNN
     
     UpdateText("GUI_Title", winDataText)
 
@@ -198,11 +213,11 @@ MainLoop()
     MouseGetPos(&mrX, &mrY)
     CoordMode("Mouse", "Client")
     MouseGetPos(&mcX, &mcY)
-    mClr := PixelGetColor(mcX, mcX, "RGB")
+    mClr := PixelGetColor(msX, msY, "RGB")
     mClr := SubStr(mClr, 3)
 
 	global mousePos := mcX " " mcY
-	global mouseColor := "#" mClr
+	global mouseColor := mClr
 
 	mpText := 
 	  "Screen:`t" msX " " msY "`n"
