@@ -11,12 +11,12 @@ global updateRate := 130
 global historic := []
 
 global mousePos := "0 0"
-global mouseColor := "#FFFFFF"
+global mouseColor := "FFFFFF"
 
 global activeWindow := WinExist("A")
 
 ; #endregion
-; #region Shortcuts
+; #region HotKeys
 
 ; ^Esc::CloseApp()
 
@@ -179,7 +179,7 @@ MainLoop()
 	If !myGui.HasProp("loaded") ; GUI is not done
 		return
 
-    CoordMode("Mouse", "Screen")
+	CoordMode("Mouse", "Screen")
 	MouseGetPos(&msX, &msY, &hWindow, &hControl, 2)
 
 	if (myGui["GUI_BoxFollowMouse"].Value and WinExist("ahk_id " hWindow))
@@ -193,28 +193,28 @@ MainLoop()
 		hControl := ControlGetFocus()
 	}
 	
-    winGet1 := WinGetTitle()
-    winGet2 := WinGetClass()
-    winGet3 := WinGetProcessName()
-    winGet4 := WinGetPID()
-    hControlClassNN := ""
-    try hControlClassNN := ControlGetClassNN(hControl)
-    
-    winDataText := "Title:`t" winGet1 "`n"
-                 . "Class:`t" winGet2 "`n"
-                 . "EXE:`t" winGet3 "`n"
-                 . "PID:`t" winGet4 "`n"
-                 . "ID:`t" activeWindow "`n"
-                 . "ClassNN:`t" hControlClassNN
-    
-    UpdateText("GUI_Title", winDataText)
+	winGet1 := WinGetTitle()
+	winGet2 := WinGetClass()
+	winGet3 := WinGetProcessName()
+	winGet4 := WinGetPID()
+	hControlClassNN := ""
+	try hControlClassNN := ControlGetClassNN(hControl)
+	
+	winDataText := "Title:`t" winGet1 "`n"
+				 . "Class:`t" winGet2 "`n"
+				 . "EXE:`t" winGet3 "`n"
+				 . "PID:`t" winGet4 "`n"
+				 . "ID:`t" activeWindow "`n"
+				 . "ClassNN:`t" hControlClassNN
+	
+	UpdateText("GUI_Title", winDataText)
 
-    CoordMode("Mouse", "Window")
-    MouseGetPos(&mrX, &mrY)
-    CoordMode("Mouse", "Client")
-    MouseGetPos(&mcX, &mcY)
-    mClr := PixelGetColor(msX, msY, "RGB")
-    mClr := SubStr(mClr, 3)
+	CoordMode("Mouse", "Window")
+	MouseGetPos(&mrX, &mrY)
+	CoordMode("Mouse", "Client")
+	MouseGetPos(&mcX, &mcY)
+	mClr := PixelGetColor(msX, msY, "RGB")
+	mClr := SubStr(mClr, 3)
 
 	global mousePos := mcX " " mcY
 	global mouseColor := mClr
@@ -228,27 +228,27 @@ MainLoop()
 
 	UpdateText("GUI_MousePos", mpText)
 
-    wX := "", wY := "", wW := "", wH := ""
-    WinGetPos &wX, &wY, &wW, &wH, "ahk_id " activeWindow
-    WinGetClientPos(&wcX, &wcY, &wcW, &wcH, "ahk_id " activeWindow)
-    
-    wText := "Screen:`tx: " wX "`ty: " wY "`tw: " wW "`th: " wH "`n"
-           . "Client:`tx: " wcX "`ty: " wcY "`tw: " wcW "`th: " wcH
-    
-    UpdateText("GUI_WinPos", wText)
+	wX := "", wY := "", wW := "", wH := ""
+	WinGetPos &wX, &wY, &wW, &wH, "ahk_id " activeWindow
+	WinGetClientPos(&wcX, &wcY, &wcW, &wcH, "ahk_id " activeWindow)
+	
+	wText := "Screen:`tx: " wX "`ty: " wY "`tw: " wW "`th: " wH "`n"
+		   . "Client:`tx: " wcX "`ty: " wcY "`tw: " wcW "`th: " wcH
+	
+	UpdateText("GUI_WinPos", wText)
 }
 
 UpdateText(vGUI, newText) {
-    global myGui
+	global myGui
 
-    static oldText := {}
-    currentGUI := myGui[vGUI]
+	static oldText := {}
+	currentGUI := myGui[vGUI]
 	currentGUI_hwnd := Integer(currentGUI.hwnd)
-    
-    if (!oldText.HasProp(currentGUI_hwnd) or oldText.%currentGUI_hwnd% != newText) {
-        currentGUI.Value := newText
-        oldText.%currentGUI_hwnd% := newText
-    }
+	
+	if (!oldText.HasProp(currentGUI_hwnd) or oldText.%currentGUI_hwnd% != newText) {
+		currentGUI.Value := newText
+		oldText.%currentGUI_hwnd% := newText
+	}
 }
 
 ; #endregion

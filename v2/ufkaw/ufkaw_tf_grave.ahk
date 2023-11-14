@@ -1,95 +1,134 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+#MaxThreadsPerHotkey 2
 
 #Include "%A_ScriptDir%/shared.ahk"
+#Include "%A_ScriptDir%/../libs/ShinsImageScanClass.ahk"
 
 global looping := false
+global shin := ShinsImageScanClass(windowTitle)
 
 ; #region Entry Point
 
 ^Esc::ExitApp
 
 F1::{
-	WheelOut()
+	ZoomWheel()
 	GravediggerSetup()
-	GravediggerClicks()
+	if(GravediggerGate())
+		GravediggerClicks()
 }
-
-F2::{
-	GravediggerClicks()
++F1::{
+	if(GravediggerGate())
+		GravediggerClicks()
 }
 
 F3::{
-	global looping := true
-	WheelOut()
+	global looping
+	if(looping)
+	{
+		looping := false
+		return
+	}
+
+	ZoomWheel()
+	looping := true
 	while looping {
 		GravediggerSetup()
-		GravediggerClicks()
+		if(GravediggerGate())
+			GravediggerClicks()
+		Sleep 5000 ; winAnimation
 	}
+	looping := false
 }
-
-F4::global looping := false
 
 ; #region Coord Stuff
 
-Dig(x, y, clickDelay := 1700){
-	MyClick(x, y, "Right") ; dig
-	Sleep clickDelay
-	MyClick(x, (y-27), "Right") ; dig ui
-	Sleep 300
+DontHaveTimer(){
+	return !SearchForTimerShin(shin)
 }
 
 GravediggerSetup(){
-	MyClick(720, 320, "Right") ; seller
-	Sleep 300
-	MyClick(720, 295, "Right") ; seller 2
-
-	Sleep 3800 ; move & loading
-	
-	MyClick(1000, 525, "Right") ; gate
-	Sleep 250
-	MyClick(1000, 500, "Right") ; gate 2
-	Sleep 1500 ; gate open
+	UIClick(708, 248, 350) ; seller
+	Sleep 4100 ; move & loading
 }
 
-GravediggerClicks(){
-	walkTime := 300
+GravediggerGate(){
+	UIClick(1000, 525, 400) ; gate
+	Sleep 1000 ; gate open
 
-	; first dig
-	Dig(1080, 480, walkTime)
-	Sleep(walkTime * 2)
+	if(DontHaveTimer())
+	{
+		MsgBox("Timer didnt start",, "T1 Icon!")
+		return 0
+	}
+	return 1
+}
 
-	Dig(978, 484)
+Dig(x, y){
+	UIClick(x, y, 240)
+	Sleep 1700 ; time to dig (inclusive closing UI)
+}
+
+WalkAndDig(x, y){
+	Sleep 125 ; time to walk half cell
+	Dig(x, y)
+}
+
+GravediggerClicks()
+{
+	; ---- Intial Area
+	WalkAndDig(1080, 480) ; first dig
+
+	if(DontHaveTimer())
+		return
+
+	WalkAndDig(978, 484)
 	Dig(1021, 511)
 	Dig(1029, 565)
-	Dig(1081, 543)
-	Dig(1085, 546)
+	WalkAndDig(1081, 543)
+	WalkAndDig(1085, 546)
 	
-	Dig(1081, 602)
-	Sleep walkTime
-	Dig(1078, 606)
-	Dig(1080, 603)
+	if(DontHaveTimer())
+		return
+	
+	; ---- Road
+	WalkAndDig(1081, 602)
+	WalkAndDig(1078, 606)
+	Sleep 100 ; fix?
+	WalkAndDig(1080, 603)
 	Dig(899, 573)
-	Dig(1082, 543)
+	WalkAndDig(1082, 543)
 	Dig(901, 575)
 	Dig(1024, 578)
-	Dig(1083, 548)
+
+	if(DontHaveTimer())
+		return
+
+	WalkAndDig(1083, 548)
 	Dig(900, 578)
 	Dig(1022, 575)
-	Dig(1078, 606)
+	WalkAndDig(1078, 606)
 	Dig(1029, 513)
 	Dig(902, 582)
+		
+	if(DontHaveTimer())
+		return
 
-	; Curva
-	Dig(959, 603)
-	Dig(841, 612)
+	; ---- Turn Down
+	WalkAndDig(959, 603)
+	WalkAndDig(841, 612)
 	Dig(1014, 579)
-	Dig(837, 608)
+	WalkAndDig(837, 608)
 	Dig(898, 518)
-	Dig(834, 611)
+
+	if(DontHaveTimer())
+		return
+
+	WalkAndDig(834, 611)
 	Dig(900, 519)
 	Dig(1020, 579)
-	Dig(846, 608)
+	WalkAndDig(846, 608)
 	Dig(902, 517)
 	Dig(1021, 578)
 }

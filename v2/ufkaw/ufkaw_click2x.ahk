@@ -1,5 +1,6 @@
 #Requires AutoHotkey v2.0
 #SingleInstance Force
+#MaxThreadsPerHotkey 2
 
 #Include "%A_ScriptDir%/shared.ahk"
 
@@ -19,29 +20,31 @@ NumpadEnter::{
 	if(looping)
 	{
 		looping := false
+		return
 	}
-	else
-	{
-		looping := true
-		while looping {
-			Click pos1.ToStringSpace() " Right" ; bucket
-			Sleep 250 ; UI animation
-			Click pos2.ToStringSpace() " Right" ; bucket 2
-			
-			Sleep delay ; player animation
-		}
+	looping := true
+	while looping {
+		MyClick(pos1.x, pos1.y, "Right") ; bucket
+		Sleep 300 ; UI animation
+		MyClick(pos2.x, pos2.y, "Right") ; bucket UI
+		
+		Sleep delay ; player animation
 	}
+	looping := false
 }
 
 Numpad0::{
-	MouseGetPos &x, &y
-	global pos1 := Point(x, y)
+	global pos1 := GetClientMPos()
 }
 
 Numpad1::{
-	MouseGetPos &x, &y
-	global pos2 := Point(x, y)
+	global pos2 := GetClientMPos()
 }
+
+NumpadMult::MsgBox delay
+
+NumpadSub::global delay -= 300
+NumpadAdd::global delay += 300
 
 Numpad2::global delay := 300
 Numpad3::global delay := 600

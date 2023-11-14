@@ -241,7 +241,7 @@ class MemoryWin
 	GetModuleFileNameEx(hModule)
 	{
 		lpFilename := Buffer(2048 * 2)
-        if(DllCall("psapi\GetModuleFileNameEx", "Ptr", this.procHandle, "Ptr", hModule, "Ptr", lpFilename.Ptr, "Uint", lpFilename.Size))
+		if(DllCall("psapi\GetModuleFileNameEx", "Ptr", this.procHandle, "Ptr", hModule, "Ptr", lpFilename.Ptr, "Uint", lpFilename.Size))
 			return StrGet(lpFilename)
 		MemoryWin.ShowLastError("GetModuleFileNameEx")
 		return 0

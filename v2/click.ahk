@@ -15,6 +15,7 @@ F1 UP::{
 		Click x " " y " Left"
 		Sleep 200
 	}
+	looping := false
 }
 	
 F2 UP::{

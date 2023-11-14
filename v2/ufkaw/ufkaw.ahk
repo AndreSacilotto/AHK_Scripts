@@ -9,10 +9,17 @@ SendMode "Input"
 ^Esc::ExitApp
 
 F1::{
-	MouseGetPos &x, &y
-	Click x " " y " Right"
+	p := GetClientMPos()
+	MyClick(p.x, p.y, " Right")
 	Sleep 300
-	Click x " " (y-28) " Right"
+	MyClick(p.x, p.y-22, " Right")
+}
+
++F1::{
+	p := GetClientMPos()
+	MyClick(p.x, p.y, " Right")
+	Sleep 300
+	MyClick(p.x, p.y-22, " Right")
 }
 
 F2::{ ; show zoom
