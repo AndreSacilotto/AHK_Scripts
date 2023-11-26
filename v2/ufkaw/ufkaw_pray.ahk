@@ -27,33 +27,30 @@ F1::{
 	GoPrayMounted()
 }
 
-F2::{ ; test color
-	p := GetScreenMPos()
-	MsgBox PixelSearchBox(p.x, p.y, 0x496E79, 30, 10, 10)
+F2::{
+	ChangeChar()
+	SelectChar(4)
 }
 
 F3::{
-	; setup: be in game with first char
-	loop 5 {
+	; be on character select screen
+	start := 1
+	end := 5
+	loop(end-start+1) {
+		Sleep 500
+		SelectChar(A_Index+start-1)
 		GoPray()
-		Sleep 1000
-		ChangeChar(A_Index+1)
-		WaitLogin()
+		Sleep 500
+		ChangeChar()
 	}
 }
 
 ; #region Pixel Search
 
-WaitLogin(){
-	while (PixelSearchBoxShin(shin, 1535, 560, 0xFFFFFF, 5, 3, 3))
-		Sleep 1000
-}
-
-FindDoorAhk(){
-	for(index, door in doors)
-		if(PixelSearchBox(door.x, door.y, 0x496E79, 30, 10, 10))
-			return door
-	return 0
+WaitLoadingScreen(){
+	while (PixelSearchBoxShin(shin, 1535, 560, 0xFFFFFF, 0, 3, 3))
+		Sleep 1500
+	; MsgBox "I have waited",,"T1"
 }
 
 FindDoorShin(){
@@ -77,10 +74,12 @@ DoorClick(){
 
 ; #region Bot Stuff
 
+
 PraySetup(){
 	Shortcut(8)
-	Sleep 2000 ; tp
+	Sleep 2200 ; tp
 	ZoomWheel()
+	Sleep 600 ; just a little more
 }
 
 PrayAltar(){
@@ -88,8 +87,9 @@ PrayAltar(){
 	
 	Sleep 400 ; wait dialog anim
 	MyClick(1022, 891,"Left") ; skip dialog
-	Sleep 220
+	Sleep 300
 	MyClick(1022, 891,"Left") ; pray
+	Sleep 300
 }
 
 GoPray(){
@@ -127,17 +127,25 @@ GoPrayMounted(){
 	PrayAltar()
 }
 
-ChangeChar(num := 1, wait := true){
+ChangeChar(){
+	; MyClick(814, 1055, "Right")
 	MySend("{Escape}") ; Open Menu
-	Sleep 300
+	Sleep 400
 	MyClick(964, 520, "Left") ; Select Opt
-	Sleep 300
+	Sleep 400
 	MyClick(922, 564, "Left") ; Confirmation
-	Sleep 2000 ; logout animation
-	
-	WaitLogin()
+	Sleep 3000 ; logout animation
 
-	; start at 1
-	MyClick(525, 180 + num * 61, "Left", 2) 
+	WaitLoadingScreen()
 }
 
+SelectChar(num := 1){
+	; start at 1
+	MyClick(525, 180 + num * 61, "Left")
+	Sleep 500
+	MyClick(525, 180 + num * 61, "Left", 2) 
+
+	Sleep 1500
+
+	WaitLoadingScreen()
+}

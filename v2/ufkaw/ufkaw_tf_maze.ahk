@@ -6,81 +6,53 @@
 #Include "%A_ScriptDir%/../memoryWin.ahk"
 #Include "%A_ScriptDir%/../libs/ShinsImageScanClass.ahk"
 
+global shin := ShinsImageScanClass(windowTitle)
+
 global mazeZoom := 0.5
 global mem := MemoryWin(windowTitle)
-global shin := ShinsImageScanClass(windowTitle)
+global zoomAddress := mem.GetStaticAddress("jvm.dll", 0x00AE05F8, 0x38, 0x58, 0x208, 0x80, 0xC0, 0x28, 0x130 + 0x18)
+
+; #region Hotkeys
 
 ^Esc::ExitApp
 
 F1::{
-	MazeSeller()
+	; MazeSeller()
 	MazeGate()
-	Mount()
-	FindAndGoToObject()
-}
-^+F1::{
-	MazeSeller()
-}
-+F1::{
-	MazeGate()
-	CloseMessage()
-	FindAndGoToObject()
-}
-^F1::{
 	FindAndGoToObject()
 }
 
 F2::{
+	; MsgBox PixelSearchBoxShin(shin, 1003, 490, 0x32331A, 0, 10, 10)
 	SetZoom(mazeZoom)
 }
 +F2::{ ; test color
 	p := GetScreenMPos()
-	MsgBox CheckUIFromClick(p.x, p.y-22)
+	; MsgBox CheckUIFromClick(p.x, p.y-22)
+	MsgBox PixelSearchBoxShin(shin, 868, 314, 0x7E742B, 50, 4, 4)
 }
 
-global looping := false
-F3::{
-	global looping
-	if(looping){
-		looping := false
-		return
-	}
-	looping := true
-	while(looping) 
-	{
-		MazeSeller()
-		isGateOpen := MazeGate(true)
-		if(!isGateOpen){
-			loop 3{ ; try again
-				Sleep 600
-				if(isGateOpen := MazeGate(false))
-					break
-			}
-			MsgBox("(Exiting) The gate didnt open",, "Icon!")
-			return
-		}
-		if(FindAndGoToObject())
-		{
-			Sleep 500
-			if(SearchForTimerShin(shin))
-				MsgBox("(Bug) click and look",, "Icon? T45")
-		}
-		else
-			Sleep 55500 ; wait time run out
-
-		Sleep 7000 ; winAnimationTime + blackScreenTime
-	}
-	looping := false
-}
+F3::MazeLoop()
 
 ; #region Util
 
 SetZoom(value){
-	address := mem.GetStaticAddress("jvm.dll", 0x00AE05F8, 0x38, 0x58, 0x208, 0x80, 0xC0, 0x28, 0x130)
-	mem.WriteMemory(value, "Float", address, 0x18)
+	mem.WriteMemory(value, "Float", zoomAddress, 0)
+}
+GetZoom(){
+	mem.ReadMemory("Float", zoomAddress, 0)
 }
 
-global checkUIWait := 300
+/** (this action reset zoom) */
+RideMount(useMouse := true){
+	Shortcut(2, useMouse) ; click/send 2 slot
+}
+
+CloseMessage(){
+	MySend("{Esc}")
+}
+
+global checkUIWait := 350
 
 /** @param confirmDelay : <0 it never confirms | =0 no delay | >0 has delay */
 CheckUIFromClick(x, y, confirmDelay := 0){ 
@@ -96,53 +68,86 @@ CheckUIFromClick(x, y, confirmDelay := 0){
 	return found
 }
 
-/** (this action reset zoom) */
-Mount(){
-	; Shortcut(2) ; shortcut 2 slot
-	Shortcut(2, true) ; click 2 slot
-}
-
-CloseMessage(){
-	MySend("{Esc}")
-}
-
 ; #region Maze
 
+global tries := 10
 
 MazeSeller(){ 
-	; this func dont use mazeZoom
-	; the FPS drop from inactavating the window
-	; dissaper when you enter a instance
+	; loadtime := 2000
+	; movetime := 2200
 
-	ZoomWheel()
-	Mount()
-	Sleep 250
+	x := 867, y := 312, y2 := y-22
 
-	UIClick(840, 440) ; seller
+	loop(tries) ; see if UI appear
+	{
+		if(GetZoom() != 1)
+			ZoomWheel()
+		Sleep 200
+		MyClick(x, y, "Right")
+		Sleep 300
+		if(SearchForUIShin(shin, x, y2)){
+			; RideMount(false) ; unmounting sometimes will override the last action 
+			Sleep 400
+			UIClick(x, y, 400) ; seller
+			Sleep 4600
 
-	Sleep 4450 ; move & loading
-}
+			; quick fix for for bug that click moves but does nothing
+			x := 1040, y := 330, y2 := y-22
+			MyClick(x, y, "Right")
+			Sleep 400
+			if(SearchForUIShin(shin, x, y2)){
+				Sleep 100
+				UIClick(x, y2, 400)
+				Sleep 1000 ; loading
+			}
 
-MazeGate(firstTime := true){
-	ZoomWheel()
+			return 1
+		}
+		Sleep 500
+	}
 
-	UIClick(1000, 500)
-	Sleep 225 ; gate sleep 1
-	Mount()
-	Sleep 250 ; gate sleep 2
-	SetZoom(mazeZoom)
-	if(firstTime)
-		CloseMessage()
-	Sleep 250 ; gate sleep 3
 
-	if(SearchForTimerShin(shin))
-		return 1
 
-	Mount()
-	MsgBox("Timer didnt start",, "T1 Icon!")
 	return 0
 }
 
+MazeMessage(){
+	loop(tries) ; wait for message
+	{
+		if(PixelSearchBoxShin(shin, 1006, 251, 0xD1B36A, 30)){
+			CloseMessage()
+			break
+		}
+		Sleep 400
+	}
+}
+
+MazeGate()
+{
+	Sleep 1000 ; wait for message
+
+	if(GetZoom() != 1)
+		ZoomWheel()
+
+	SetTimer(MazeMessage, -2000)
+
+	loop(tries) ; search for gate
+	{
+		if(PixelSearchBoxShin(shin, 1003, 490, 0x32331A, 10)){ ; search for closed gate
+			Sleep 500
+			UIClick(1003, 490, checkUIWait)
+			loop(tries) ; wait timer start
+			{
+				if(SearchForTimerShin(shin))
+					return 1
+				Sleep 500
+			}
+			return 0
+		}
+		Sleep 400
+	}
+	return 0
+}
 
 ; 0-40.5 secs - flush
 ; 41-50 - furniture
@@ -150,91 +155,121 @@ MazeGate(firstTime := true){
 
 FindAndGoToObject() ; should have special zoom
 {
-	amount := 20000 - 500 ; waitForFlush - gateSleep (a bit less just to be sure)
+	Sleep 200
+	RideMount()
+	Sleep 700
+	SetZoom(mazeZoom)
+	Sleep 900
+
+	amount := 20000 - 1800 ; waitForFlush - preparation
+	
 	; amount - walkTime
 
 	; check center
-	if(CheckUIFromClick(1642, 96, amount - 9500)){ ; StatueCenterLeft
-		Sleep 9500
+	if(CheckUIFromClick(1642, 96, amount - 9450)) ; StatueCenterLeft
 		return 1
-	}
 	amount -= checkUIWait
-	if(CheckUIFromClick(1731, 226, amount - 7500)){ ; StatueCenterRight
-		Sleep 7500
+	if(CheckUIFromClick(1731, 226, amount - 7500)) ; StatueCenterRight
 		return 1
-	}
 	amount -= checkUIWait
 
 	; check left
-	if(CheckUIFromClick(1080, 111, amount - 9600)){ ; StatueLeftStraight
-		Sleep 9600
+	if(CheckUIFromClick(1080, 111, amount - 9420)) ; StatueLeftStraight
 		return 1
-	}
 	amount -= checkUIWait
 	if(CheckUIFromClick(1258, 139, -1)){ ; StatueLeftZigZag
 		Sleep 200
-		MyClick(900, 140, "Left") 
-		Sleep(amount - 8600)
-		UIClick(1320, 553)
-		Sleep 4200
+		MyClick(900, 140, "Left")
+		Sleep(amount - 200 - 3550 - 300) ; sleep + objectiveWalkTime + clickDelay : (amount already cover the leftWalkTime)
+		UIClick(1320, 553, 300) 
 		return 1
 	}
 	amount -= checkUIWait
 
 	MyClick(1900, 339, "Left") 
-	Sleep 8050
-	amount -= 8050
+	Sleep 8000
+	amount -= 8000
 
 	; check right-start
 	if(CheckUIFromClick(1228, 242, amount - 4700)) ; StatueRightCorner
-	{
-		Sleep 4700
 		return 1
-	}
 	amount -= checkUIWait
 
 	if(CheckUIFromClick(1039, 288, amount - 4200)) ; StatueRightHidden
-	{
-		Sleep 4200
 		return 1
-	}
 	amount -= checkUIWait
 
-	if(CheckUIFromClick(815, 360, amount - 8300)) ; StatueRightCenter
-	{
-		Sleep 8300
+	; MsgBox amount
+	if(CheckUIFromClick(815, 358, amount - 8000)) ; StatueRightCenter
 		return 1
-	}
-
-	; (amount will always be <0 for these)
+	; amount -= checkUIWait ; (there is waiting here these)
+	
 	MyClick(900, 221, "Left") 
 	Sleep 5500
 	
-	; Check right-end 
-	; if(CheckUIFromClick(1270, 571)){ ; StatueRightCorner
-	; 	Sleep 7000
-	; 	return 1
-	; }
-	; if(CheckUIFromClick(871, 685)){ ; StatueRightCenter
-	; 	Sleep 3600
-	; 	return 1
-	; }
-	; if(CheckUIFromClick(1101, 603, 1500)){ ; StatueRightHidden
-	; 	Sleep 2800
-	; 	return 1
-	; }
-	; the 3 above can be placed before the second move (TODO)
-
-	if(CheckUIFromClick(654, 356)){  ; StatueRightHidden2
-		Sleep 4000
+	if(CheckUIFromClick(654, 356))  ; StatueRightHidden2
 		return 1
-	}
 
-	if(CheckUIFromClick(342, 477)){  ; StatueRightLast
-		Sleep 6400
+	if(CheckUIFromClick(342, 477))  ; StatueRightLast
 		return 1
-	}
 
-	MsgBox("Cant find a target",,"Icon! T5")
 	return 0
+}
+
+MazeEnding()
+{
+	static winningDance := 3500
+
+	loop(20) ; wait until timer dissapear for 20 seconds
+	{
+		Sleep 1000
+		if(!SearchForTimerShin(shin)){
+			Sleep winningDance
+			return
+		}
+	}
+
+	; maybe it bug: try clicking all directions
+
+	UIClick(930, 508, checkUIWait) ; left
+	Sleep checkUIWait
+	UIClick(991, 538, checkUIWait) ; right
+	Sleep checkUIWait
+	UIClick(992, 504, checkUIWait) ; north
+	Sleep checkUIWait
+	UIClick(912, 552, checkUIWait) ; south
+	Sleep checkUIWait
+
+	; truly wait timer dissapear
+	while(SearchForTimerShin(shin))
+		Sleep 1000
+	
+	Sleep winningDance
+}
+
+MazeLoop(){
+	static looping := false
+	if(looping){
+		looping := false
+		return
+	}
+	looping := true
+	while(looping) 
+	{
+		if(!MazeSeller()){
+			MsgBox("Exiting - No Seller",,"Icon!")
+			break ; exit
+		}
+
+		if(!MazeGate()){
+			MsgBox("Exiting - No Gate or Timer",, "Icon!")
+			break ; exit
+		}
+
+		if(!FindAndGoToObject())
+			MsgBox("Wating Time End - No objective found",,"T2")
+
+		MazeEnding()
+	}
+	looping := false
 }

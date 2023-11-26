@@ -1,5 +1,5 @@
 #Requires AutoHotkey v2.0
-#SingleInstance Force
+#SingleInstance Off ; Force
 #MaxThreadsPerHotkey 2
 
 #Include "%A_ScriptDir%/shared.ahk"
@@ -23,7 +23,7 @@ F1::{
 		GravediggerClicks()
 }
 
-F3::{
+~F3::{
 	global looping
 	if(looping)
 	{
@@ -49,13 +49,13 @@ DontHaveTimer(){
 }
 
 GravediggerSetup(){
-	UIClick(708, 248, 350) ; seller
-	Sleep 4100 ; move & loading
+	UIClick(708, 211, 350) ; seller
+	Sleep 4550 ; move & loading
 }
 
 GravediggerGate(){
 	UIClick(1000, 525, 400) ; gate
-	Sleep 1000 ; gate open
+	Sleep 1500 ; gate open
 
 	if(DontHaveTimer())
 	{

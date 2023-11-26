@@ -108,7 +108,7 @@ class MemoryWin
 		if (MemoryWin.TypeSize.Has(type))
 			return MemoryWin.TypeSize[type]
 		A_LastError := "X"
-		MemoryWin.ShowLastError("Type")
+		MemoryWin.ShowLastError("Type(" type ")")
 		return 0
 	}
 

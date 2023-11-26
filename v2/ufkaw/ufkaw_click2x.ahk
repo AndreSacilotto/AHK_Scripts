@@ -1,5 +1,5 @@
 #Requires AutoHotkey v2.0
-#SingleInstance Force
+#SingleInstance Off ; Force
 #MaxThreadsPerHotkey 2
 
 #Include "%A_ScriptDir%/shared.ahk"
@@ -13,6 +13,7 @@ global pos2 := Point()
 
 global looping := false
 global delay := 1000
+global clickCount := 9
 
 NumpadEnter::{
 	global delay, looping
@@ -28,9 +29,14 @@ NumpadEnter::{
 		Sleep 300 ; UI animation
 		MyClick(pos2.x, pos2.y, "Right") ; bucket UI
 		
-		Sleep delay ; player animation
+		if(delay > 0)
+			Sleep delay ; player animation
 	}
 	looping := false
+}
+
+NumpadDot::{
+	MsgBox ClickCount
 }
 
 Numpad0::{
@@ -41,16 +47,18 @@ Numpad1::{
 	global pos2 := GetClientMPos()
 }
 
+global delayBase := 250
+
 NumpadMult::MsgBox delay
 
-NumpadSub::global delay -= 300
-NumpadAdd::global delay += 300
+NumpadSub::global delay -= delayBase
+NumpadAdd::global delay += delayBase
 
-Numpad2::global delay := 300
-Numpad3::global delay := 600
-Numpad4::global delay := 900
-Numpad5::global delay := 1200
-Numpad6::global delay := 1500
-Numpad7::global delay := 1800
-Numpad8::global delay := 2100
-Numpad9::global delay := 2400
+Numpad2::global delay := 0
+Numpad3::global delay := delayBase * 0.5
+Numpad4::global delay := delayBase
+Numpad5::global delay := delayBase * 2
+Numpad6::global delay := delayBase * 4
+Numpad7::global delay := delayBase * 6
+Numpad8::global delay := delayBase * 8
+Numpad9::global delay := delayBase * 10
