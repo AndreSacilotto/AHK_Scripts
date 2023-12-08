@@ -4,8 +4,6 @@
 #Include "%A_ScriptDir%/shared.ahk"
 #Include "%A_ScriptDir%/../memoryWin.ahk"
 
-SendMode "Input"
-
 ^Esc::ExitApp
 
 F1::{
@@ -16,7 +14,7 @@ F1::{
 }
 
 global mem := MemoryWin(windowTitle)
-global address := mem.GetStaticAddress("jvm.dll", 0x00AE05F8, 0x38, 0x58, 0x208, 0x80, 0xC0, 0x28, 0x130 + 0x18)
+global address := mem.GetStaticAddress("jvm.dll", 0x00B217B8, 0x38, 0x58, 0x1D0, 0x28, 0x30, 0xE8 + 0x18)
 global currentZoom := 1
 global changeZoom := 0.1
 

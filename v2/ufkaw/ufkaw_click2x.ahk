@@ -36,7 +36,7 @@ NumpadEnter::{
 }
 
 NumpadDot::{
-	MsgBox ClickCount
+	MsgBox(ClickCount " | " delay)
 }
 
 Numpad0::{
@@ -49,10 +49,15 @@ Numpad1::{
 
 global delayBase := 250
 
-NumpadMult::MsgBox delay
+NumpadSub::global delay -= 100
+NumpadAdd::global delay += 100
 
-NumpadSub::global delay -= delayBase
-NumpadAdd::global delay += delayBase
+NumpadMult::{
+	ib := InputBox("Delay in MS",, "w200 h150")
+	if(ib.Result = "OK" and IsNumber(ib.Value) and Number(ib.Value) > 0){
+		global delay := ib.Value
+	}
+}
 
 Numpad2::global delay := 0
 Numpad3::global delay := delayBase * 0.5

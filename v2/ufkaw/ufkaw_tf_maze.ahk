@@ -10,7 +10,7 @@ global shin := ShinsImageScanClass(windowTitle)
 
 global mazeZoom := 0.5
 global mem := MemoryWin(windowTitle)
-global zoomAddress := mem.GetStaticAddress("jvm.dll", 0x00AE05F8, 0x38, 0x58, 0x208, 0x80, 0xC0, 0x28, 0x130 + 0x18)
+global zoomAddress := mem.GetStaticAddress("jvm.dll", 0x00B217B8, 0x38, 0x58, 0x1D0, 0x28, 0x30, 0xE8 + 0x18)
 
 ; #region Hotkeys
 
@@ -40,7 +40,7 @@ SetZoom(value){
 	mem.WriteMemory(value, "Float", zoomAddress, 0)
 }
 GetZoom(){
-	mem.ReadMemory("Float", zoomAddress, 0)
+	return mem.ReadMemory("Float", zoomAddress, 0)
 }
 
 /** (this action reset zoom) */
@@ -48,9 +48,7 @@ RideMount(useMouse := true){
 	Shortcut(2, useMouse) ; click/send 2 slot
 }
 
-CloseMessage(){
-	MySend("{Esc}")
-}
+
 
 global checkUIWait := 350
 
@@ -87,8 +85,7 @@ MazeSeller(){
 		Sleep 300
 		if(SearchForUIShin(shin, x, y2)){
 			; RideMount(false) ; unmounting sometimes will override the last action 
-			Sleep 400
-			UIClick(x, y, 400) ; seller
+			MyClick(x, y2, "Right") ; seller
 			Sleep 4600
 
 			; quick fix for for bug that click moves but does nothing
@@ -96,8 +93,7 @@ MazeSeller(){
 			MyClick(x, y, "Right")
 			Sleep 400
 			if(SearchForUIShin(shin, x, y2)){
-				Sleep 100
-				UIClick(x, y2, 400)
+				MyClick(x, y2, "Right")
 				Sleep 1000 ; loading
 			}
 
@@ -106,30 +102,22 @@ MazeSeller(){
 		Sleep 500
 	}
 
-
-
 	return 0
-}
-
-MazeMessage(){
-	loop(tries) ; wait for message
-	{
-		if(PixelSearchBoxShin(shin, 1006, 251, 0xD1B36A, 30)){
-			CloseMessage()
-			break
-		}
-		Sleep 400
-	}
 }
 
 MazeGate()
 {
-	Sleep 1000 ; wait for message
+	loop(tries) ; wait for message
+	{
+		if(PixelSearchBox(1079, 135, 0xEEEEEE, 10)){ ; check for close btn
+			MyClick(1079, 135, "Left") ; close btn click
+			break
+		}
+		Sleep 500
+	}
 
 	if(GetZoom() != 1)
 		ZoomWheel()
-
-	SetTimer(MazeMessage, -2000)
 
 	loop(tries) ; search for gate
 	{
@@ -155,18 +143,18 @@ MazeGate()
 
 FindAndGoToObject() ; should have special zoom
 {
-	Sleep 200
+	Sleep 250
 	RideMount()
-	Sleep 700
+	Sleep 1200
 	SetZoom(mazeZoom)
-	Sleep 900
+	Sleep 1000
 
-	amount := 20000 - 1800 ; waitForFlush - preparation
+	amount := 20000 - 2200 ; waitForFlush - preparation
 	
 	; amount - walkTime
 
 	; check center
-	if(CheckUIFromClick(1642, 96, amount - 9450)) ; StatueCenterLeft
+	if(CheckUIFromClick(1642, 96, amount - 9550)) ; StatueCenterLeft
 		return 1
 	amount -= checkUIWait
 	if(CheckUIFromClick(1731, 226, amount - 7500)) ; StatueCenterRight
@@ -200,7 +188,7 @@ FindAndGoToObject() ; should have special zoom
 	amount -= checkUIWait
 
 	; MsgBox amount
-	if(CheckUIFromClick(815, 358, amount - 8000)) ; StatueRightCenter
+	if(CheckUIFromClick(815, 358, Max(amount - 8500, 0))) ; StatueRightCenter
 		return 1
 	; amount -= checkUIWait ; (there is waiting here these)
 	
