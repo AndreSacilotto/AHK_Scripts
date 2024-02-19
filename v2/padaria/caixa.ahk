@@ -24,6 +24,8 @@ global windowNota := "ahk_class TRLPreviewForm"
 
 ; Global Vars
 
+global keyTime := 300
+
 global sellType := ""
 global outOpt := 0
 global winGUI := CreateGUI()
@@ -72,7 +74,7 @@ CreateGUI() {
     myGui.AddRadio("vGUI_OP2 r1 x+m", "2 Virtual").OnEvent("Click", (GuiControl, Info) => SetOutOption(FirstChar(GuiControl.Text)))
     myGui.AddRadio("vGUI_OP3 r1 x+m", "3 Termic").OnEvent("Click", (GuiControl, Info) => SetOutOption(FirstChar(GuiControl.Text)))
     myGui.AddRadio("vGUI_OP4 r1 x+m", "4 SAT").OnEvent("Click", (GuiControl, Info) => SetOutOption(FirstChar(GuiControl.Text)))
-    myGui.AddRadio("vGUI_OP5 r1 x+m Checked", "5 SAT VIRTUAL").OnEvent("Click", (GuiControl, Info) => SetOutOption(FirstChar(GuiControl.Text)))
+    myGui.AddRadio("vGUI_OP5 r1 x+m Checked", "5 SAT Virtual").OnEvent("Click", (GuiControl, Info) => SetOutOption(FirstChar(GuiControl.Text)))
     SetOutOption(5)
     
     myGui.AddButton("vGUI_Do w395 r1 xm+0 y+25", "Do It").OnEvent("Click", (GuiControl, Info) => MakeSell())
@@ -89,28 +91,28 @@ CloseApp(*) {
 }
 
 SetSellType(sellTypeString){
-    global sellType
-    sellType := StrLower(sellTypeString)
+    global sellType := StrLower(sellTypeString)
 }
 SetOutOption(outOptNumber){
-    global outOpt
-    outOpt := Integer(outOptNumber)
+    global outOpt := Integer(outOptNumber)
+}
+
+WaitWinExist(winTitle, sleepTime := keyTime){
+    WinWait(winTitle)
+    Sleep(sleepTime)
 }
 
 ; string, number -> void
 MakeSell() {
-    global sellType, outOpt
-
-    transitionTime := 1200
-    keyTime := 300
+    ; transitionTime := 1200
 
     ; ************ Close Order ************
-    Sleep(transitionTime)
+    WaitWinExist(windowOrder)
 
-    ControlSend("{F10}", , windowOrder)
+    ControlSend("{F10}",, windowOrder)
 
     ; ************ Sell Type ************
-    Sleep(transitionTime)
+    WaitWinExist(windowSellType)
 
     field := ""
     switch sellType
@@ -128,16 +130,16 @@ MakeSell() {
     Sleep(keyTime * 2)
     ControlClick(confirm, windowSellType, , "Left")
 
-    ; * Strange Confirmation *
-    Sleep(transitionTime)
+    ; ************ Strange Confirmation ************
+    WaitWinExist(windowStrangeConfirm)
 
     ; ControlClick(confirm, windowStrangeConfirm, , "Left", 2)
     ControlSend("{Tab}",,windowStrangeConfirm)
     Sleep(keyTime)
     ControlSend("{Enter}",,windowStrangeConfirm)
 
-    ; ************ Out Opt 1 ************
-    Sleep(transitionTime)
+    ; ************ Out Opt ************
+    WaitWinExist(windowOutOpt)
 
     ; exit := "TBitBtn1"
     table := "TDBGrid1"
@@ -149,16 +151,18 @@ MakeSell() {
         Sleep(keyTime * 2)
     }
     ControlSend("{Enter}", table, windowOutOpt)
+    Sleep(keyTime * 2)
 
-    ; ************ Out Opt  2 ************
-    Sleep(transitionTime)
+    ; ************ Out Opt (Again) ************
+    WaitWinExist(windowOutOpt)
+
     ControlSend("{Enter}", table, windowOutOpt)
 
     ; ************ Cpf ************
     if(outOpt <= 3)
         return
 
-    Sleep(transitionTime)
+    WaitWinExist(windowCpf)
     
     ; cpfEdit := "TEdit1"
     cpfOk := "TButton2"
@@ -168,10 +172,9 @@ MakeSell() {
     Sleep(keyTime)
     
     ; ************ Nota ************
-    Sleep(transitionTime)
+    WaitWinExist(windowNota)
 
     ; pageNN := "TRLPreviewBox1"
     Sleep(2000)
-    ControlSend("{Escape}", , windowNota)
-
+    ControlSend("{Escape}",, windowNota)
 }
